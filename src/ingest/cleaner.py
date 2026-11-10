@@ -6,12 +6,15 @@ These rules are a starting point: tune them after looking at real extracted text
 
 from __future__ import annotations
 
+import logging
 import re
 import unicodedata
 from collections import Counter
 from dataclasses import replace
 
 from .models import Page
+
+logger = logging.getLogger(__name__)
 
 # "cyber-\nsecurity" -> "cybersecurity". Trade-off: a real hyphen at a line
 # end ("pre-\nmarket") also gets joined. That's rare enough to accept.
@@ -28,6 +31,12 @@ _DOT_LEADER = re.compile(r"(?:\.\s?){4,}")
 # the end of each line ("should be1236"). Only used when the manifest says so,
 # because on other documents it would eat real numbers ("Article 115").
 _TRAILING_LINE_NUMBER = re.compile(r"\s*\d{1,4}\s*$")
+# A table-of-contents line ends in a page number ("Introduction 4") or has a
+# dot leader ("Introduction ........ 4").
+_TOC_LINE = re.compile(r"\s\d{1,3}\s*$|\.{4,}|(?:\. ){4,}")
+
+# Measured on our PDFs: TOC pages score 0.76-0.95, every other page <= 0.36.
+TOC_LINE_RATIO = 0.6
 
 # Headers and footers are short. Longer lines are real content even if repeated.
 _MAX_HEADER_LEN = 100
@@ -73,6 +82,21 @@ def strip_line_numbers(text: str) -> str:
     return "\n".join(_TRAILING_LINE_NUMBER.sub("", line) for line in text.splitlines())
 
 
+def is_toc_page(text: str, threshold: float = TOC_LINE_RATIO, min_lines: int = 5) -> bool:
+    """True if most lines look like table-of-contents entries.
+
+    Must run on RAW text (lines intact, dots present) and AFTER margin line
+    numbers are stripped: otherwise every line of a draft guidance "ends in a
+    number" and every page looks like a TOC.
+    """
+    lines = [line for line in text.splitlines() if line.strip()]
+    if len(lines) < min_lines:
+        # Tiny pages (title slides) give unreliable ratios.
+        return False
+    hits = sum(1 for line in lines if _TOC_LINE.search(line))
+    return hits / len(lines) >= threshold
+
+
 def normalize_text(text: str) -> str:
     """Fix unicode and whitespace while keeping paragraph boundaries ("\\n\\n").
 
@@ -109,6 +133,13 @@ def clean_pages(pages: list[Page], has_line_numbers: bool = False) -> list[Page]
     """
     if has_line_numbers:
         pages = [replace(page, text=strip_line_numbers(page.text)) for page in pages]
+
+    # Drop table-of-contents pages: they mention every section title, so they
+    # match many queries and would become useless citations ("see p.4").
+    toc_pages = [page.page for page in pages if is_toc_page(page.text)]
+    if toc_pages:
+        logger.info("%s: skipping table-of-contents pages %s", pages[0].doc_id, toc_pages)
+        pages = [page for page in pages if page.page not in toc_pages]
 
     repeated = find_repeated_lines(pages)
     cleaned: list[Page] = []
