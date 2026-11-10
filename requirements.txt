@@ -1,9 +1,10 @@
 # requirements.txt — M1: PDF ingestion and chunking
+# Versions pinned to what's installed and tested in .venv (Python 3.11).
 
-pypdf            # read PDFs and extract text page by page
-transformers     # tokenizer of your embedding model, to measure chunk size in tokens
-tqdm             # progress bars while processing pages
-python-dotenv    # load settings (chunk size, overlap, paths) from .env
+pypdf==7.0.1            # read PDFs and extract text page by page
+transformers==5.22.2    # tokenizer of your embedding model, to measure chunk size in tokens
+tqdm==4.70.1            # progress bars while processing pages
+python-dotenv==1.2.4    # load settings (chunk size, overlap, paths) from .env
 
 # dev
-pytest           # tests for your chunking logic
+pytest==9.2.0           # tests for your chunking logic
