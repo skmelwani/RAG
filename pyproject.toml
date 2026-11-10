@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+# Lets tests import `ingest` and `config` from src/ without installing the package.
+pythonpath = ["src"]
+testpaths = ["tests"]

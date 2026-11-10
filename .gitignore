@@ -5,3 +5,6 @@ data/raw/
 data/chroma/
 .DS_Store
 prompt.txt
+data/processed/
+.pytest_cache/
+.vscode/
