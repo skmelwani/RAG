@@ -41,9 +41,14 @@ class Settings:
     raw_dir: Path
     processed_dir: Path
     manifest_path: Path
-    embedding_model: str  # its tokenizer is used to measure chunk size
+    chroma_dir: Path  # Chroma's persistent database folder
+    embedding_model: str  # also its tokenizer measures chunk size
+    embedding_device: str  # "cpu", "mps" (Apple GPU) or "cuda"
+    embedding_batch_size: int
+    query_prefix: str  # instruction bge expects before queries (not documents)
     chunk_size: int  # max tokens per chunk
     chunk_overlap: int  # tokens shared between neighbouring chunks
+    top_k: int  # how many chunks a search returns
     log_level: str
 
 
@@ -53,8 +58,16 @@ def get_settings() -> Settings:
         raw_dir=_path("RAW_DIR", "data/raw"),
         processed_dir=_path("PROCESSED_DIR", "data/processed"),
         manifest_path=_path("MANIFEST_PATH", "data/manifest.csv"),
+        chroma_dir=_path("CHROMA_DIR", "data/chroma"),
         embedding_model=os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
+        # CPU by default: PyTorch's Apple GPU backend crashes on macOS 14.
+        embedding_device=os.getenv("EMBEDDING_DEVICE", "cpu"),
+        embedding_batch_size=_int("EMBEDDING_BATCH_SIZE", 32),
+        query_prefix=os.getenv(
+            "QUERY_PREFIX", "Represent this sentence for searching relevant passages: "
+        ),
         chunk_size=_int("CHUNK_SIZE", 256),
         chunk_overlap=_int("CHUNK_OVERLAP", 40),
+        top_k=_int("TOP_K", 5),
         log_level=os.getenv("LOG_LEVEL", "INFO"),
     )
