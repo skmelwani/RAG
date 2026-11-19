@@ -11,5 +11,8 @@ sentence-transformers==6.2.0  # runs the embedding model (bge-small)
 torch==2.15.0                 # installed by sentence-transformers; pinned for reproducibility
 chromadb==1.5.9               # persistent vector database with an HNSW index
 
+# M3: generation with a local LLM
+httpx==0.28.1                 # HTTP client for the Ollama REST API (clear timeout/connection errors)
+
 # dev
 pytest==9.2.0                 # tests
